@@ -636,3 +636,7 @@ binds:
   type: State
   key: R
   mod1: Shift
+- function: RMCXenoPing
+  type: State
+  key: n
+

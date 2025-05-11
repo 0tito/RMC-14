@@ -149,6 +149,7 @@ namespace Content.Client.Input
 
             //Xeno
             human.AddFunction(CMKeyFunctions.CMXenoWideSwing);
+            human.AddFunction(CMKeyFunctions.RMCXenoPing);
         }
     }
 }
