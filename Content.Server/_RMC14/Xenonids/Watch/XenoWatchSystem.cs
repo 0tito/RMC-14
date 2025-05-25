@@ -156,7 +156,7 @@ public sealed class XenoWatchSystem : SharedXenoWatchSystem
         var xenos = new List<Xeno>();
 
         var query = EntityQueryEnumerator<XenoComponent, HiveMemberComponent, MetaDataComponent>();
-        while (query.MoveNext(out var uid, out _, out var member, out var metaData))
+        while (query.MoveNext(out var uid, out var xenoComp, out var member, out var metaData))
         {
             if (uid == ent.Owner || member.Hive != hive.Owner)
                 continue;
@@ -164,7 +164,7 @@ public sealed class XenoWatchSystem : SharedXenoWatchSystem
             if (_mobState.IsDead(uid))
                 continue;
 
-            xenos.Add(new Xeno(GetNetEntity(uid), Name(uid, metaData), metaData.EntityPrototype?.ID, 0, 0, 0));
+            xenos.Add(new Xeno(GetNetEntity(uid), Name(uid, metaData), metaData.EntityPrototype?.ID, 0, 0, 0, xenoComp.Role.Id));
         }
 
         xenos.Sort((a, b) => string.CompareOrdinal(a.Name, b.Name));
@@ -185,7 +185,7 @@ public sealed class XenoWatchSystem : SharedXenoWatchSystem
 
         var xenos = new List<Xeno>();
         var query = EntityQueryEnumerator<XenoComponent, HiveMemberComponent, MetaDataComponent>();
-        while (query.MoveNext(out var uid, out var comp, out var member, out var metaData))
+        while (query.MoveNext(out var uid, out var xenoComp, out var member, out var metaData))
         {
             bool leader = false;
             if (uid == ent.Owner || member.Hive != hive.Owner)
@@ -194,15 +194,15 @@ public sealed class XenoWatchSystem : SharedXenoWatchSystem
             if (_mobState.IsDead(uid))
                 continue;
 
-            if(TryComp<HiveLeaderComponent>(uid, out var leaderComp))
+            if(TryComp<HiveLeaderComponent>(uid, out _))
                 leader = true;
 
-            if (comp.CountedInSlots)
+            if (xenoComp.CountedInSlots)
             {
                 xenocount++;
             }
 
-            switch (comp.Tier)
+            switch (xenoComp.Tier)
             {
                 case 2:
                     tier2Amount++;
@@ -220,7 +220,7 @@ public sealed class XenoWatchSystem : SharedXenoWatchSystem
                 evo = evoComp.Points;
             }
 
-            xenos.Add(new Xeno(GetNetEntity(uid), Name(uid, metaData), metaData.EntityPrototype?.ID, GetHealthPercentage(uid), GetPlasmaPercentage(uid), evo, leader));
+            xenos.Add(new Xeno(GetNetEntity(uid), Name(uid, metaData), metaData.EntityPrototype?.ID, GetHealthPercentage(uid), GetPlasmaPercentage(uid), evo, xenoComp.Role.Id, leader));
         }
 
 

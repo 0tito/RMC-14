@@ -122,7 +122,10 @@ public sealed class XenoWatchBui : BoundUserInterface
         var icon = new SpriteSpecifier.Rsi(new ResPath("/Textures/_RMC14/Interface/xeno_leader.rsi/"), "hudxenoleader");
         var iconTexture = _sprite.Frame0(icon);
 
-        var xenolist = s.Xenos.OrderByDescending(a => a.Leader);
+        var xenolist = s.Xenos
+            .OrderByDescending(a => a.RoleId.Equals("CMXenoQueen"))
+            .ThenBy(a => a.RoleId)
+            .ThenByDescending(a => a.Leader);
 
         foreach (var key in XenoCounts.Keys)
         {
@@ -135,8 +138,8 @@ public sealed class XenoWatchBui : BoundUserInterface
         var total = s.XenoCount + burrowedweight;
 
 
-        var tier2Slots = (total * 0.5f) - s.TierTwoAmount * s.TierThreeAmount;
-        var tier3Slots = (total * 0.2f) - s.TierThreeAmount;
+        var tier2Slots = Math.Max((float)(total * 0.5f - s.TierTwoAmount * s.TierThreeAmount), 0);
+        var tier3Slots = Math.Max((float)(total * 0.2f - s.TierThreeAmount), 0);
 
 
         foreach (var xeno in xenolist)
@@ -149,25 +152,13 @@ public sealed class XenoWatchBui : BoundUserInterface
             }
 
 
+            var name = xeno.Name;
             var control = new XenoChoiceControl();
-            control.Set(xeno.Name, texture);
+            control.Set(name, texture);
 
-
-            foreach (var xenokey in ShownXenos.Keys) //Lesser drones are evil
+            if (XenoCounts.ContainsKey(name))
             {
-                var name = control.NameLabel.GetMessage()??"EmptyString";
-                name = name.Replace(" ", "");
-                if (name.Contains(xenokey))
-                {
-                    if ((name.Contains("Lesser")) == (xenokey.Contains("Lesser")) )
-                        control.SetName(xenokey);
-                }
-            }
-
-            string value = control.Button.Name ?? "";
-            if (XenoCounts.ContainsKey(value))
-            {
-                XenoCounts[value] += 1;
+                XenoCounts[name] += 1;
             }
 
 
@@ -301,27 +292,23 @@ public sealed class XenoWatchBui : BoundUserInterface
         UpdateList();
     }
 
-    private void UpdateTierChilds()
+   private void UpdateTierChilds()
     {
         if (_window is not { Disposed: false })
             return;
-        foreach (var child in _window.RowContainer.Children)
+
+        var buttons = _window.RowContainer.Children
+            .OfType<XenoTierRow>()
+            .SelectMany(row => row.XenosContainer.Children)
+            .OfType<XenoHiveCountControl>()
+            .SelectMany(countControl => countControl.XenoButton.Children)
+            .OfType<Button>();
+
+        foreach (var button in buttons)
         {
-            if (child is not XenoTierRow control)
-                continue;
-            foreach (var xenocountchild in control.XenosContainer.Children) //i love nested loops (theres probably a better way to do this)
-            {
-                if (xenocountchild is not XenoHiveCountControl countControl)
-                    continue;
-                foreach (var button in countControl.XenoButton.Children)
-                {
-                    if (button is not Button xenobutton)
-                        continue;
-                    var name = xenobutton.Name ?? "";
-                    if (name is not "")
-                        xenobutton.ModulateSelfOverride = UpdateButtonColor(ShownXenos[name]);
-                }
-            }
+            var name = button.Name ?? "";
+            if (name != "")
+                button.ModulateSelfOverride = UpdateButtonColor(ShownXenos[name]);
         }
     }
 
@@ -353,8 +340,7 @@ public sealed class XenoWatchBui : BoundUserInterface
 
                 if (UsingSearchBar)
                 {
-                    control.Visible =
-                        control.NameLabel.GetMessage()?.Contains(SearchBarText, StringComparison.OrdinalIgnoreCase) ?? false;
+                    control.Visible = FilterLesserVisibility(control.NameLabel.GetMessage());
                 }
                 else
                 {
@@ -372,5 +358,24 @@ public sealed class XenoWatchBui : BoundUserInterface
                     }
                 }
             }
+    }
+
+    private bool FilterLesserVisibility(string? nameLabel)
+    {
+        if (nameLabel == null)
+            return false;
+
+        if (!nameLabel.Contains(SearchBarText, StringComparison.OrdinalIgnoreCase))
+            return false;
+
+        var isLesserPartiallySearched = "lesser".Contains(SearchBarText, StringComparison.OrdinalIgnoreCase);
+        var isLesser = nameLabel.Contains("lesser", StringComparison.OrdinalIgnoreCase);
+        var isLesserSearched = SearchBarText.Contains("lesser", StringComparison.OrdinalIgnoreCase);
+        var searchingForLesser = isLesserPartiallySearched || isLesserSearched;
+
+        if (isLesser && !searchingForLesser)
+            return false;
+
+        return true;
     }
 }
