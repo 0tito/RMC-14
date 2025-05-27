@@ -92,7 +92,8 @@ public sealed class XenoWatchBui : BoundUserInterface
                 var xenobutton = new Button();
 
                 xenobutton.Text = xeno.Name;
-                xenobutton.Name = xeno.Name.Replace(" ", "");
+                var nameId = ToNameId(xeno.Name);
+                xenobutton.Name = nameId;
                 xenobutton.ToggleMode = true;
                 xenobutton.ModulateSelfOverride = Color.Purple;
                 xenobutton.AddStyleClass("ButtonSquare");
@@ -101,8 +102,8 @@ public sealed class XenoWatchBui : BoundUserInterface
                 xenocontrol.XenoButton.AddChild(xenobutton);
 
                 row.XenosContainer.AddChild(xenocontrol);
-                ShownXenos.Add(xeno.Name.Replace(" ", ""), false);
-                XenoCounts.Add(xeno.Name.Replace(" ", ""), 0);
+                ShownXenos.Add(nameId, false);
+                XenoCounts.Add(nameId, 0);
 
             }
             _window.RowContainer.AddChild(row);
@@ -138,8 +139,8 @@ public sealed class XenoWatchBui : BoundUserInterface
         var total = s.XenoCount + burrowedweight;
 
 
-        var tier2Slots = Math.Max((float)(total * 0.5f - s.TierTwoAmount * s.TierThreeAmount), 0);
-        var tier3Slots = Math.Max((float)(total * 0.2f - s.TierThreeAmount), 0);
+        var tier2Slots = Math.Floor(Math.Max((float)total * 0.5f - s.TierTwoAmount * s.TierThreeAmount, 0));
+        var tier3Slots = Math.Floor(Math.Max((float)(total * 0.2f - s.TierThreeAmount), 0));
 
 
         foreach (var xeno in xenolist)
@@ -156,9 +157,10 @@ public sealed class XenoWatchBui : BoundUserInterface
             var control = new XenoChoiceControl();
             control.Set(name, texture);
 
-            if (XenoCounts.ContainsKey(name))
+            var nameId = ExtractNameId(name);
+            if (XenoCounts.ContainsKey(nameId))
             {
-                XenoCounts[name] += 1;
+                XenoCounts[nameId] += 1;
             }
 
 
@@ -169,6 +171,7 @@ public sealed class XenoWatchBui : BoundUserInterface
             if (xeno.Leader)
                 control.SetLeader(iconTexture);
 
+            control.Button.Name = nameId;
             control.Button.OnPressed += _ => SendPredictedMessage(new XenoWatchBuiMsg(xeno.Entity));
 
             control.HealButton.OnPressed += _ => SendPredictedMessage(new XenoWatchBuiHealingMsg(xeno.Entity));
@@ -213,13 +216,35 @@ public sealed class XenoWatchBui : BoundUserInterface
                     name  = xenobutton.Text??"";
                 }
 
-                if (XenoCounts.TryGetValue(name.Replace(" ","")??"", out var count))
+                if (XenoCounts.TryGetValue(ToNameId(name) ??"", out var count))
                 {
                   hive.Count.Text = $"{count}";
                 }
             }
         }
         UpdateList();
+    }
+
+    private string ExtractNameId(string name)
+    {
+        name = ToNameId(name);
+        foreach (var xenokey in ShownXenos.Keys)
+        {
+            if (name.Contains(xenokey) && IsLesserPrefixEqual(name, xenokey))
+                return xenokey;
+        }
+        return "";
+    }
+
+    private bool IsLesserPrefixEqual(string a, string b)
+    {
+        return a.Contains("Lesser", StringComparison.OrdinalIgnoreCase) ==
+               b.Contains("Lesser", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string ToNameId(string name)
+    {
+        return name.Replace(" ","");
     }
 
     private XenoWatchWindow EnsureWindow()
@@ -284,7 +309,7 @@ public sealed class XenoWatchBui : BoundUserInterface
         {
             foreach (var xeno in tiers[number])
             {
-                ShownXenos[xeno.Name.Replace(" ","")] = args.Button.Pressed;
+                ShownXenos[ToNameId(xeno.Name)] = args.Button.Pressed;
             }
         }
         UpdateTierChilds();
@@ -334,30 +359,30 @@ public sealed class XenoWatchBui : BoundUserInterface
             return;
 
         foreach (var child in _window.XenoContainer.Children)
+        {
+            if (child is not XenoChoiceControl control)
+                continue;
+
+            if (UsingSearchBar)
             {
-                if (child is not XenoChoiceControl control)
+                control.Visible = FilterLesserVisibility(control.NameLabel.GetMessage());
+            }
+            else
+            {
+                if (!ShownXenos.ContainsValue(true))
+                {
+                    control.Visible = true;
                     continue;
-
-                if (UsingSearchBar)
-                {
-                    control.Visible = FilterLesserVisibility(control.NameLabel.GetMessage());
                 }
-                else
+
+                control.Visible = false;
+
+                if (ShownXenos.TryGetValue(control.Button.Name ?? "", out var xeno))
                 {
-                    if (!ShownXenos.ContainsValue(true))
-                    {
-                        control.Visible = true;
-                        continue;
-                    }
-
-                    control.Visible = false;
-
-                    if (ShownXenos.TryGetValue(control.Button.Name ?? "", out var xeno))
-                    {
-                        control.Visible = xeno;
-                    }
+                    control.Visible = xeno;
                 }
             }
+        }
     }
 
     private bool FilterLesserVisibility(string? nameLabel)
