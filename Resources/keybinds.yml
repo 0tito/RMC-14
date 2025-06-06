@@ -626,6 +626,9 @@ binds:
 - function: CMXenoWideSwing
   type: State
   key: Space
+- function: RMCXenoPing
+  type: State
+  key: G
 - function: RMCPickUpDroppedItems
   type: State
   key: R
