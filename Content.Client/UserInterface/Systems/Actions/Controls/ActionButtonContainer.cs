@@ -16,6 +16,10 @@ public class ActionButtonContainer : GridContainer
 
     public event Action<GUIBoundKeyEventArgs, ActionButton>? ActionPressed;
     public event Action<GUIBoundKeyEventArgs, ActionButton>? ActionUnpressed;
+
+    public event Action<ActionButton>? ActionHovered;
+
+    public event Action<ActionButton>? ActionUnhovered;
     public event Action<ActionButton>? ActionFocusExited;
 
     public ActionButtonContainer()
@@ -85,6 +89,10 @@ public class ActionButtonContainer : GridContainer
         button.ActionPressed += ActionPressed;
         button.ActionUnpressed += ActionUnpressed;
         button.ActionFocusExited += ActionFocusExited;
+        button.ActionHovered += ActionHovered;
+        button.ActionHovered += ActionUnhovered;
+
+
     }
 
     protected override void ChildRemoved(Control newChild)

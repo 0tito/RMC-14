@@ -275,6 +275,15 @@ public sealed class ActionUIController : UIController, IOnStateChanged<GameplayS
         _actions.RemoveAll(x => x == actionId);
     }
 
+    private void OnActionHovered()
+    {
+        var currentlyHovered = UIManager.MouseGetControl(_input.MouseScreenPosition); // does this work
+        if (currentlyHovered is ActionButton button)
+        {
+            Logger.Debug("Action hovered");
+        }
+    }
+
     private void OnActionsUpdated()
     {
         QueueWindowUpdate();

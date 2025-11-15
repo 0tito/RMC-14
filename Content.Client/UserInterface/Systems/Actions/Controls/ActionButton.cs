@@ -62,6 +62,10 @@ public sealed class ActionButton : Control, IEntityControl
     public event Action<GUIBoundKeyEventArgs, ActionButton>? ActionUnpressed;
     public event Action<ActionButton>? ActionFocusExited;
 
+    public event Action<ActionButton>? ActionHovered;
+
+    public event Action<ActionButton>? ActionUnhovered;
+
     public ActionButton(IEntityManager entities, SpriteSystem? spriteSys = null, ActionUIController? controller = null)
     {
         // TODO why is this constructor so slooooow. The rest of the code is fine
@@ -377,6 +381,7 @@ public sealed class ActionButton : Control, IEntityControl
 
         UserInterfaceManager.HoverSound();
         _beingHovered = true;
+        ActionHovered?.Invoke(this);
         DrawModeChanged();
     }
 
@@ -385,6 +390,7 @@ public sealed class ActionButton : Control, IEntityControl
         base.MouseExited();
 
         _beingHovered = false;
+        ActionUnhovered?.Invoke(this);
         DrawModeChanged();
     }
 
